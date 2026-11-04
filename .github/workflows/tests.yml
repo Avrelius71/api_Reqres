@@ -4,28 +4,88 @@ on:
   push:
     branches: [ "main", "master" ]
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   run-api-tests:
     name: Run API Tests
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Копируем репозиторий тестов
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Устанавливаем Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Устанавливаем зависимости
         run: |
           python -m pip install --upgrade pip
           pip install pytest requests allure-pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Run tests with env variables
+      - name: Запуск тестов
         env:
           REQRES_API_KEY: ${{ secrets.REQRES_API_KEY }}
         run: |
           pytest -v --alluredir=./allure-results
+        continue-on-error: true
+
+      - name: Получаем историю прогонов
+        if: always()
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-history
+          path: allure-history
+        continue-on-error: true
+
+      - name: Переносим историю в allure-results
+        if: always()
+        run: |
+          if [ -d allure-history ]; then
+            cp -r allure-history/history allure-results/ || true
+          fi
+
+      - name: Генерируем Allure HTML отчет
+        if: always()
+        uses: simple-elf/allure-report-action@v1.9
+        with:
+          allure_results: allure-results
+          allure_history: allure-history
+          keep_reports: 10
+
+      - name: Сохраняем историю как артефакт
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-history
+          path: allure-history
+          retention-days: 30
+
+      - name: Setup Pages
+        if: always()
+        uses: actions/configure-pages@v4
+
+      - name: Upload Allure report artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./allure-report
+
+      - name: Deploy to GitHub Pages
+        if: always()
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Выводим ссылку на отчёт
+        if: always()
+        run: |
+          PAGE_URL="https://${{ github.repository_owner }}.github.io/$(basename ${{ github.repository }})/"
+          echo "## 📊 Allure Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Отчёт:** [Открыть Allure Report]($PAGE_URL)" >> $GITHUB_STEP_SUMMARY
