@@ -1,9 +1,8 @@
 name: API Tests CI
 
-# Триггер: запуск при каждом пуше
 on:
   push:
-    branches: [ "main", "master" ] # Можешь добавить свои ветки, если нужно
+    branches: [ "main", "master" ]
 
 jobs:
   run-api-tests:
@@ -11,32 +10,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Выкачиваем код репозитория
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Поднимаем Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Укажи свою версию, если отличается
+          python-version: '3.11'
 
-      # 3. Ставим зависимости
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pytest requests allure-pytest
-          # Если у тебя есть requirements.txt, раскомментируй строку ниже:
-          # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      # 4. Запускаем тесты, пробрасывая секрет в переменные окружения
       - name: Run tests with env variables
         env:
-          # Вот тут мы берем секрет из настроек GitHub и кладём в переменную окружения
           REQRES_API_KEY: ${{ secrets.REQRES_API_KEY }}
         run: |
-          # Запуск тестов. Если используешь pytest:
           pytest -v --alluredir=./allure-results
-          
-          # Если используешь locust, то команда будет другая, например:
-          # locust -f locustfile.py --headless -u 10 -r 2 --run-time 10s
