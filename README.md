@@ -110,7 +110,7 @@ allure open allure-report
 
 Пайплайн описан в `.github/workflows/tests.yml`.
 
-**Когда запускается:** на каждый `push`
+**Когда запускается:** на каждый `push`.
 
 **Что делает:**
 
