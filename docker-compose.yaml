@@ -1,0 +1,8 @@
+services:
+  tests:
+    build: .
+    container_name: reqres-api-tests
+    environment:
+      REQRES_API_KEY: ${REQRES_API_KEY:-}
+    volumes:
+      - ./allure-results:/app/allure-results
