@@ -2,7 +2,9 @@ services:
   tests:
     build: .
     container_name: reqres-api-tests
+    command: pytest -v --env=${ENV:-stage} --alluredir=./allure-results
     environment:
       REQRES_API_KEY: ${REQRES_API_KEY:-}
+      ENV: ${ENV:-stage}
     volumes:
       - ./allure-results:/app/allure-results
