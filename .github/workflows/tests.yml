@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Копируем репозиторий тестов
+      - name: Копируем репозиторий
         uses: actions/checkout@v4
 
       - name: Устанавливаем Python
@@ -44,20 +44,29 @@ jobs:
           path: allure-history
         continue-on-error: true
 
-      - name: Переносим историю в allure-results
+      - name: Устанавливаем Allure CLI
         if: always()
         run: |
-          if [ -d allure-history ]; then
+          wget -qO allure.tgz https://github.com/allure-framework/allure2/releases/download/2.27.0/allure-2.27.0.tgz
+          tar -zxvf allure.tgz -C /opt/
+          ln -s /opt/allure-2.27.0/bin/allure /usr/local/bin/allure
+          allure --version
+
+      - name: Генерируем Allure отчет
+        if: always()
+        run: |
+          # Подкладываем историю для трендов, если она скачалась
+          if [ -d "allure-history/history" ]; then
             cp -r allure-history/history allure-results/ || true
           fi
+          # Генерируем HTML (флаг -c очищает старую папку отчёта)
+          allure generate allure-results -c -o allure-report
 
-      - name: Генерируем Allure HTML отчет
+      - name: Готовим историю для следующего прогона
         if: always()
-        uses: simple-elf/allure-report-action@v1.9
-        with:
-          allure_results: allure-results
-          allure_history: allure-history
-          keep_reports: 10
+        run: |
+          mkdir -p allure-history
+          cp -r allure-report/history allure-history/ || true
 
       - name: Сохраняем историю как артефакт
         if: always()
@@ -65,17 +74,17 @@ jobs:
         with:
           name: allure-history
           path: allure-history
-          retention-days: 30
+          retention-days: 5
 
-      - name: Setup Pages
+      - name: Подготовка Pages
         if: always()
         uses: actions/configure-pages@v4
 
-      - name: Upload Allure report artifact
+      - name: Подготовка artifact
         if: always()
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./allure-report
+          path: './allure-report'
 
       - name: Deploy to GitHub Pages
         if: always()
@@ -88,4 +97,4 @@ jobs:
           PAGE_URL="https://${{ github.repository_owner }}.github.io/$(basename ${{ github.repository }})/"
           echo "## 📊 Allure Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Отчёт:** [Открыть Allure Report]($PAGE_URL)" >> $GITHUB_STEP_SUMMARY
+          echo "**Отчёт доступен по ссылке:** [Открыть Allure Report]($PAGE_URL)" >> $GITHUB_STEP_SUMMARY
