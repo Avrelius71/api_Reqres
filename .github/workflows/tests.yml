@@ -34,7 +34,6 @@ jobs:
           REQRES_API_KEY: ${{ secrets.REQRES_API_KEY }}
         run: |
           pytest -v --alluredir=./allure-results
-        continue-on-error: true
 
       - name: Получаем историю прогонов
         if: always()
